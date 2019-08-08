@@ -32,6 +32,11 @@ class TransactionRefund implements ClientInterface
 {
 
     /**
+     * @var int
+     */
+    protected $storeId;
+
+    /**
      * PaymentRequest constructor.
      *
      * @param \Magento\Framework\Model\Context $context
@@ -45,14 +50,16 @@ class TransactionRefund implements ClientInterface
         \Magento\Framework\Encryption\EncryptorInterface $encryptor,
         \Adyen\Payment\Helper\Data $adyenHelper,
         \Adyen\Payment\Model\RecurringType $recurringType,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
         array $data = []
     ) {
         $this->_encryptor = $encryptor;
         $this->_adyenHelper = $adyenHelper;
         $this->_recurringType = $recurringType;
         $this->_appState = $context->getAppState();
+        $this->storeId = $storeManager->getStore()->getId();
 
-        $this->_client = $this->_adyenHelper->initializeAdyenClient();
+        $this->_client = $this->_adyenHelper->initializeAdyenClient($this->storeId);
     }
 
     /**
