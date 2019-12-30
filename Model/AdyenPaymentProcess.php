@@ -131,7 +131,7 @@ class AdyenPaymentProcess implements AdyenPaymentProcessInterface
         //if payload contains a customer Id, then get the cart by the customer_id
         if(isset($payload['customer_id'])){
             $quote = $this->checkoutSession->getQuote()->loadByCustomer($payload['customer_id']);
-        } else {
+        } elseif (isset($payload['quote_id'])) {
             $quoteId = $payload['quote_id'];
             //if the quoteId is not an nummeric value then we assume that its a maked quote id from a guest card 
             if(!is_numeric($quoteId)){
@@ -139,9 +139,11 @@ class AdyenPaymentProcess implements AdyenPaymentProcessInterface
                 $quoteId =  $maskedQuote->getQuoteId();
             } 
             $quote = $this->quoteRepo->get($quoteId);
+        } else {
+            $quote = $this->checkoutSession->getQuote();
         }
         
-        $this->logger->info('Adyen PaymentProcess found quote',['quoteID'=>$quote->getId()]); 
+        // $this->logger->info('Adyen PaymentProcess found quote',['quoteID'=>$quote->getId()]); 
         $payment = $quote->getPayment();
 
         // Init request array
