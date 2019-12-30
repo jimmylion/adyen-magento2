@@ -37,9 +37,6 @@ class AdyenThreeDS2Process implements AdyenThreeDS2ProcessInterface
      */
     private $adyenHelper;
 
-    private $quoteRepo;
-    private $qutoeMaskFactory;
-
     /**
      * AdyenThreeDS2Process constructor.
      *
@@ -48,15 +45,11 @@ class AdyenThreeDS2Process implements AdyenThreeDS2ProcessInterface
      */
     public function __construct(
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Quote\Model\QuoteIdMaskFactory $qutoeMaskFactory,
-        \Magento\Quote\Model\QuoteRepository $quoteRepo,
         \Adyen\Payment\Helper\Data $adyenHelper
     )
     {
         $this->checkoutSession = $checkoutSession;
         $this->adyenHelper = $adyenHelper;
-        $this->quoteRepo = $quoteRepo;
-        $this->quoteMaskFactory = $qutoeMaskFactory;
     }
 
     /**
@@ -66,28 +59,16 @@ class AdyenThreeDS2Process implements AdyenThreeDS2ProcessInterface
      */
     public function initiate($payload)
     {
-        // When payload is not an array then why assume its a jsonstring so we try to decode 
-        if(!is_array($payload)){
-            $payload = json_decode($payload, true);
-            // Validate JSON that has just been parsed if it was in a valid format
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new \Magento\Framework\Exception\LocalizedException('Error with payment method please select different payment method.');
-            }
+        // Decode payload from frontend
+        $payload = json_decode($payload, true);
+
+        // Validate JSON that has just been parsed if it was in a valid format
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new \Magento\Framework\Exception\LocalizedException(__('3D secure 2.0 failed because the request was not a valid JSON'));
         }
 
-        // If payload contains a customer Id, then get the cart by the customer_id
-        if(isset($payload['customer_id'])){
-            $quote = $this->checkoutSession->getQuote()->loadByCustomer($payload['customer_id']);
-        } else {
-            $quoteId = $payload['quote_id'];
-            //if the quoteId is not an nummeric value then we assume that its a maked quote id from a guest card 
-            if(!is_numeric($quoteId)){
-                $maskedQuote = $this->quoteMaskFactory->create()->load($quoteId, 'masked_id');
-                $quoteId =  $maskedQuote->getQuoteId();
-            } 
-            $quote = $this->quoteRepo->get($quoteId);
-        }
-
+        // Get payment and cart information from session
+        $quote = $this->checkoutSession->getQuote();
         $payment = $quote->getPayment();
 
         // Init payments/details request
@@ -120,7 +101,7 @@ class AdyenThreeDS2Process implements AdyenThreeDS2ProcessInterface
 
             $result = $service->paymentsDetails($request);
         } catch (\Adyen\AdyenException $e) {
-            throw new \Magento\Framework\Exception\LocalizedException(__(json_encode($e)));
+            throw new \Magento\Framework\Exception\LocalizedException(__('3D secure 2.0 failed'));
         }
 
         // Check if result is challenge shopper, if yes return the token
