@@ -288,8 +288,9 @@ class Requests extends AbstractHelper
      */
     public function buildBrowserData($request = [])
     {
+        $userAgent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : 'abc';
         $request['browserInfo'] = [
-            'userAgent' => $_SERVER['HTTP_USER_AGENT'],
+            'userAgent' => $userAgent,
             'acceptHeader' => $_SERVER['HTTP_ACCEPT']
         ];
 
