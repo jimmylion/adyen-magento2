@@ -306,7 +306,7 @@ class Requests extends AbstractHelper
     public function buildThreeDS2Data($request = [], $payload, $store)
     {
         $request['additionalData']['allow3DS2'] = true;
-        $request['origin'] = $payload[PaymentInterface::KEY_ADDITIONAL_DATA]['origin'];//$this->adyenHelper->getOrigin();
+        $request['origin'] = isset($payload[PaymentInterface::KEY_ADDITIONAL_DATA]['origin']) ? $payload[PaymentInterface::KEY_ADDITIONAL_DATA]['origin'] : $this->adyenHelper->getOrigin();
         $request['channel'] = 'web';
         $request['browserInfo']['screenWidth'] = $payload[PaymentInterface::KEY_ADDITIONAL_DATA][AdyenCcDataAssignObserver::SCREEN_WIDTH];
         $request['browserInfo']['screenHeight'] = $payload[PaymentInterface::KEY_ADDITIONAL_DATA][AdyenCcDataAssignObserver::SCREEN_HEIGHT];
