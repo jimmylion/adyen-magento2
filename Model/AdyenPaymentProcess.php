@@ -67,6 +67,11 @@ class AdyenPaymentProcess implements AdyenPaymentProcessInterface
      */
     private $threeDS2ResponseValidator;
 
+    /**
+     * @var \Adyen\Payment\Gateway\Validator\ThreeDSResponseValidator
+     */
+    private $threeDSResponseValidator;
+
     private $quoteRepo;
     private $qutoeMaskFactory;
     private $logger;
@@ -82,6 +87,7 @@ class AdyenPaymentProcess implements AdyenPaymentProcessInterface
      * @param \Adyen\Payment\Gateway\Http\Client\TransactionPayment $transactionPayment
      * @param \Adyen\Payment\Gateway\Validator\CheckoutResponseValidator $checkoutResponseValidator
      * @param \Adyen\Payment\Gateway\Validator\ThreeDS2ResponseValidator $threeDS2ResponseValidator
+     * @param \Adyen\Payment\Gateway\Validator\ThreeDSResponseValidator $threeDSResponseValidator
      */
     public function __construct(
         \Magento\Framework\Model\Context $context,
@@ -92,6 +98,7 @@ class AdyenPaymentProcess implements AdyenPaymentProcessInterface
         \Adyen\Payment\Gateway\Http\Client\TransactionPayment $transactionPayment,
         \Adyen\Payment\Gateway\Validator\CheckoutResponseValidator $checkoutResponseValidator,
         \Adyen\Payment\Gateway\Validator\ThreeDS2ResponseValidator $threeDS2ResponseValidator,
+        \Adyen\Payment\Gateway\Validator\ThreeDSResponseValidator $threeDSResponseValidator,
         \Magento\Quote\Model\QuoteIdMaskFactory $qutoeMaskFactory,
         \Magento\Quote\Model\QuoteRepository $quoteRepo,
         \Psr\Log\LoggerInterface $logger
@@ -105,6 +112,7 @@ class AdyenPaymentProcess implements AdyenPaymentProcessInterface
         $this->transactionPayment = $transactionPayment;
         $this->checkoutResponseValidator = $checkoutResponseValidator;
         $this->threeDS2ResponseValidator = $threeDS2ResponseValidator;
+        $this->threeDSResponseValidator = $threeDSResponseValidator;
         $this->quoteRepo = $quoteRepo;
         $this->quoteMaskFactory = $qutoeMaskFactory;
         $this->logger = $logger;
@@ -201,6 +209,7 @@ class AdyenPaymentProcess implements AdyenPaymentProcessInterface
 
         // Check if 3DS2.0 validation is needed or not
         // In case 3DS2.0 validation is necessary send the type and token back to the frontend
+        // $this->logger->info('PAYMENT resultCode: '.$paymentsResponse['resultCode']);
         if (!empty($paymentsResponse['resultCode'])) {
             if ($paymentsResponse['resultCode'] == 'IdentifyShopper' ||
                 $paymentsResponse['resultCode'] == 'ChallengeShopper') {
@@ -211,6 +220,20 @@ class AdyenPaymentProcess implements AdyenPaymentProcessInterface
                     $quote->save();
                     return $this->adyenHelper->buildThreeDS2ProcessResponseJson($payment->getAdditionalInformation('threeDS2Type'),
                         $payment->getAdditionalInformation('threeDS2Token'));
+                }
+            } else if($paymentsResponse['resultCode'] == 'RedirectShopper'){
+                if ($this->threeDSResponseValidator->validate(array(
+                    "response" => $paymentsResponse,
+                    "payment" => $payment
+                ))->isValid()) {
+                    $response = [
+                        "threeDS2" => false,
+                        "type" => $paymentsResponse['resultCode'],
+                        "redirect" => $paymentsResponse['redirect'],
+                        "action" => $paymentsResponse['action']
+                    ];
+                // $this->logger->info('3ds1 REsponse: '.var_export($response,true));
+                    return json_encode($response);
                 }
             }
         } else {
