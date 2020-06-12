@@ -201,6 +201,7 @@ class AdyenPaymentProcess implements AdyenPaymentProcessInterface
 
         // Check if 3DS2.0 validation is needed or not
         // In case 3DS2.0 validation is necessary send the type and token back to the frontend
+        // $this->logger->info('PAYMENT resultCode: '.$paymentsResponse['resultCode']);
         if (!empty($paymentsResponse['resultCode'])) {
             if ($paymentsResponse['resultCode'] == 'IdentifyShopper' ||
                 $paymentsResponse['resultCode'] == 'ChallengeShopper') {
@@ -216,9 +217,11 @@ class AdyenPaymentProcess implements AdyenPaymentProcessInterface
                 $response = [
                     "threeDS2" => false,
                     "type" => $paymentsResponse['resultCode'],
-                    "redirect" => $paymentsResponse['redirect']
+                    "redirect" => $paymentsResponse['redirect'],
+                    "action" => $paymentsResponse['action']
+                    
                 ];
-                
+                // $this->logger->info('3ds1 REsponse: '.var_export($response,true));
                 return json_encode($response);
             }
         } else {
