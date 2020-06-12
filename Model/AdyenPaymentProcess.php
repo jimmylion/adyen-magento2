@@ -212,6 +212,14 @@ class AdyenPaymentProcess implements AdyenPaymentProcessInterface
                     return $this->adyenHelper->buildThreeDS2ProcessResponseJson($payment->getAdditionalInformation('threeDS2Type'),
                         $payment->getAdditionalInformation('threeDS2Token'));
                 }
+            } else if($paymentsResponse['resultCode'] == 'RedirectShopper'){
+                $response = [
+                    "threeDS2" => false,
+                    "type" => $paymentsResponse['resultCode'],
+                    "redirect" => $paymentsResponse['redirect']
+                ];
+                
+                return json_encode($response);
             }
         } else {
             $errorMsg = $paymentsResponse['error'];
